@@ -1,11 +1,41 @@
 const TelegramBot = require('node-telegram-bot-api');
+const fs = require('fs');
 
 // ⚠️ التوكن بتاعك
 const TOKEN = '8945901025:AAFMunPkkoNRdMrj-OtgSUnUapqV_TKEK90';
+const DEVELOPER_ID = 8794777974; // الآيدي بتاعك
 const bot = new TelegramBot(TOKEN, { polling: true });
 
 // رابط صورة الهيدر
 const BANNER_URL = "https://www.image2url.com/r2/default/images/1792619785603-05724b00-59c1-46c7-a878-821f2cbd8452.png";
+
+// ملف تخزين المستخدمين
+const USERS_FILE = 'users.json';
+
+// دالة تحميل بيانات المستخدمين
+function loadUsers() {
+    if (!fs.existsSync(USERS_FILE)) {
+        fs.writeFileSync(USERS_FILE, JSON.stringify({ users: [] }));
+        return { users: [] };
+    }
+    const data = fs.readFileSync(USERS_FILE);
+    return JSON.parse(data);
+}
+
+// دالة حفظ بيانات المستخدمين
+function saveUsers(data) {
+    fs.writeFileSync(USERS_FILE, JSON.stringify(data, null, 2));
+}
+
+// تسجيل مستخدم جديد
+function registerUser(userId, name) {
+    const data = loadUsers();
+    const exists = data.users.find(u => u.id === userId);
+    if (!exists) {
+        data.users.push({ id: userId, name: name });
+        saveUsers(data);
+    }
+}
 
 // روابط الأقسام
 const links = {
@@ -32,7 +62,7 @@ const links = {
     'get_phone_link': "https://t.me/heroil_2bot"
 };
 
-// دالة لإنشاء القائمة الرئيسية (كل الأقسام)
+// القائمة الرئيسية
 function getMainKeyboard() {
     return {
         reply_markup: JSON.stringify({
@@ -60,9 +90,12 @@ function getMainKeyboard() {
     };
 }
 
-// دالة الرد على /start
+// الرد على /start
 bot.onText(/\/start/, (msg) => {
     const chatId = msg.chat.id;
+    const name = msg.from.first_name || 'مستخدم';
+    registerUser(chatId, name);
+
     const text = "╔══════════════════════════╗\n" +
                  "║   ⚔️ <b>KING-SAQ BOT</b> ⚔️   ║\n" +
                  "╚══════════════════════════╝\n\n" +
@@ -77,12 +110,54 @@ bot.onText(/\/start/, (msg) => {
     });
 });
 
-// دالة الرد على الأزرار
+// الرد على /admin
+bot.onText(/\/admin/, (msg) => {
+    const chatId = msg.chat.id;
+    if (chatId !== DEVELOPER_ID) {
+        bot.sendMessage(chatId, "❌ هذا الأمر خاص بالمطور فقط.");
+        return;
+    }
+
+    bot.sendMessage(chatId, "𖤍『لَوْحَةُ الـمَلِك』𖤍\n𓆩♛𓆪 الهكر هرويل 206 𓆩♛𓆪\n\nاختر الخيار:", {
+        parse_mode: 'HTML',
+        reply_markup: JSON.stringify({
+            inline_keyboard: [
+                [{ text: "📊 إحصائيات", callback_data: 'admin_stats' }],
+                [{ text: "📢 إذاعة للمستخدمين", callback_data: 'admin_broadcast' }],
+                [{ text: "🔙 إغلاق", callback_data: 'admin_close' }]
+            ]
+        })
+    });
+});
+
+// التعامل مع الأزرار
 bot.on('callback_query', (query) => {
     const chatId = query.message.chat.id;
     const data = query.data;
 
-    if (data === 'fake_num') {
+    if (data === 'admin_stats') {
+        const data = loadUsers();
+        bot.sendMessage(chatId, `📊 <b>إحصائيات البوت:</b>\n\n👥 عدد المستخدمين: ${data.users.length}`, { parse_mode: 'HTML' });
+    } else if (data === 'admin_broadcast') {
+        if (chatId !== DEVELOPER_ID) return;
+        bot.sendMessage(chatId, "📢 أرسل الرسالة اللي تبغى ترسلها لكل المستخدمين:");
+        bot.once('message', (msg) => {
+            const message = msg.text;
+            const data = loadUsers();
+            let success = 0;
+            let failed = 0;
+
+            data.users.forEach(user => {
+                bot.sendMessage(user.id, message).then(() => success++).catch(() => failed++);
+            });
+
+            setTimeout(() => {
+                bot.sendMessage(chatId, `✅ تم الإرسال!\n\n📤 نجح: ${success}\n❌ فشل: ${failed}`);
+            }, 2000);
+        });
+    } else if (data === 'admin_close') {
+        bot.deleteMessage(chatId, query.message.message_id);
+    } else if (data === 'fake_num') {
         bot.sendMessage(chatId, "📱 <b>أرقام وهمية</b>\n\nاختر المنصة:", {
             parse_mode: 'HTML',
             reply_markup: JSON.stringify({
@@ -115,12 +190,10 @@ bot.on('callback_query', (query) => {
     } else if (data === 'back_main') {
         bot.sendMessage(chatId, "🔥 <b>اختر القسم المناسب:</b>", { parse_mode: 'HTML', ...getMainKeyboard() });
     } else if (data === 'about') {
-        bot.sendMessage(chatId, "👨‍💻 <b>KING-SAQ BOT v2.0</b>", { parse_mode: 'HTML' });
+        bot.sendMessage(chatId, "👨‍💻 <b>KING-SAQ BOT v3.0</b>", { parse_mode: 'HTML' });
     } else if (data === 'contact') {
         bot.sendMessage(chatId, "👨‍💻 <b>المطور:</b> @heroil_1", { parse_mode: 'HTML' });
-    } else if (data === 'coming_soon') {
-        bot.sendMessage(chatId, "🛠️ <b>هذا القسم قيد التطوير حالياً.</b>", { parse_mode: 'HTML' });
-    } else if (data === 'transfer_points' || data === 'collect_points' || data === 'points_store' || data === 'get_contacts' || data === 'get_messages' || data === 'get_photos') {
+    } else if (data === 'coming_soon' || data === 'transfer_points' || data === 'collect_points' || data === 'points_store' || data === 'get_contacts' || data === 'get_messages' || data === 'get_photos') {
         bot.sendMessage(chatId, "🛠️ <b>هذا القسم قيد التطوير حالياً.</b>", { parse_mode: 'HTML' });
     } else if (links[data]) {
         bot.sendMessage(chatId, `🔗 <b>الرابط جاهز:</b>\n\n${links[data]}`, {
@@ -134,4 +207,4 @@ bot.on('callback_query', (query) => {
     bot.answerCallbackQuery(query.id);
 });
 
-console.log("⚔ البوت شغال بنجاح على Node.js... (النسخة الكاملة)");
+console.log("⚔ البوت شغال بنجاح على Node.js... (مع لوحة الأدمن)");
